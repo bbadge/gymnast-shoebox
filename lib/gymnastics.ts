@@ -56,5 +56,30 @@ export function formatCalendarDate(date: string | null, fallback = 'Date TBD') {
 }
 
 export function competitionSeason(date: string | null) {
-  return date?.slice(0, 4) ?? 'Unscheduled';
+  if (!date) return 'Unscheduled';
+
+  const [year, month] = date.slice(0, 10).split('-').map(Number);
+  if (!year || !month) return 'Unscheduled';
+
+  const startYear = month >= 7 ? year : year - 1;
+  return `${startYear}-${String(startYear + 1).slice(-2)}`;
+}
+
+export function majorGymnasticsLevel(level: string | null) {
+  if (!level) return null;
+
+  const numericLevel = level.match(/\b(?:level\s*)?(\d+)\b/i)?.[1];
+  if (numericLevel) return numericLevel;
+
+  const xcelLevel = level.match(/\b(bronze|silver|gold|platinum|diamond|sapphire)\b/i)?.[1];
+  if (xcelLevel) {
+    return `Xcel ${xcelLevel.charAt(0).toUpperCase()}${xcelLevel.slice(1).toLowerCase()}`;
+  }
+
+  return level.trim() || null;
+}
+
+export function displayGymnasticsLevel(level: string | null) {
+  if (!level) return 'Level not recorded';
+  return /^(?:level|xcel)\b/i.test(level) ? level : `Level ${level}`;
 }

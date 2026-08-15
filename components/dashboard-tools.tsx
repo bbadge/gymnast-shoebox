@@ -3,6 +3,7 @@
 import { useEffect } from 'react';
 import { Filter, Printer } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { displayGymnasticsLevel } from '@/lib/gymnastics';
 
 export function DashboardTools({
   seasons,
@@ -45,7 +46,9 @@ export function DashboardTools({
             className="h-9 rounded-md border border-input bg-background px-3 text-sm"
           >
             <option value="all">All levels</option>
-            {levels.map((level) => <option key={level} value={level}>{level}</option>)}
+            {levels.map((level) => (
+              <option key={level} value={level}>{displayGymnasticsLevel(level)}</option>
+            ))}
           </select>
         </div>
         <Button type="submit" variant="outline" size="sm">

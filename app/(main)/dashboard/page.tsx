@@ -13,6 +13,7 @@ import {
   competitionSeason,
   displayApparatus,
   formatCalendarDate,
+  majorGymnasticsLevel,
 } from '@/lib/gymnastics';
 import { createClient } from '@/lib/supabase/server';
 
@@ -131,11 +132,15 @@ export default async function Dashboard({
     new Set(competitions.map((competition) => competitionSeason(competition.start_date)))
   ).sort().reverse();
   const levels = Array.from(
-    new Set(competitions.map((competition) => competition.level).filter(Boolean) as string[])
-  ).sort();
+    new Set(
+      competitions
+        .map((competition) => majorGymnasticsLevel(competition.level ?? null))
+        .filter(Boolean) as string[]
+    )
+  ).sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
   const filtered = competitions.filter((competition) =>
     (selectedSeason === 'all' || competitionSeason(competition.start_date) === selectedSeason) &&
-    (selectedLevel === 'all' || competition.level === selectedLevel)
+    (selectedLevel === 'all' || majorGymnasticsLevel(competition.level ?? null) === selectedLevel)
   );
   const eventOrder = apparatusForProgram(gymnast?.gender);
   const personalRecords = getPersonalRecords(filtered, eventOrder);
@@ -146,7 +151,11 @@ export default async function Dashboard({
       const score = competition.scores?.find((item) => item.apparatus === apparatus)?.value;
       return score == null
         ? []
-        : [{ label: `${formatCalendarDate(competition.start_date)} — ${competition.name}`, score: Number(score) }];
+        : [{
+            label: `${formatCalendarDate(competition.start_date)} — ${competition.name}`,
+            score: Number(score),
+            level: majorGymnasticsLevel(competition.level ?? null),
+          }];
     }),
   }));
 
