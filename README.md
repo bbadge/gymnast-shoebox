@@ -9,7 +9,7 @@ Gymnast Shoebox is a modern, mobile-first SaaS application designed to solve the
 
 ## 🚀 Features
 *   **Multi-Gymnast Support:** Track scores for multiple children (siblings) under one parent account.
-*   **MeetScoresOnline Integration:** Automatically import meet details and scores using an MSO Athlete ID.
+*   **Score Imports:** Automatically sync MeetScoresOnline using a saved Athlete ID, or preview and import long- or wide-format CSV score files.
 *   **Live Meet Entry:** Enter scores as they happen. Supports incomplete meets and future schedule planning.
 *   **Detailed Scoring:** Track Final Score, Placement, and Start Values.
 *   **Deep Customization:** Toggle fields (like Start Value) to declutter the UI on small screens.

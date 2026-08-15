@@ -1,59 +1,12 @@
 'use server';
 
-import * as cheerio from 'cheerio';
 import { revalidatePath } from 'next/cache';
 import { ensureActiveGymnast } from '@/app/actions/gymnast';
+import { createMsoProvider } from '@/lib/imports/mso-provider';
+import type { ImportMeetSummary } from '@/lib/imports/types';
 import { createClient } from '@/lib/supabase/server';
-import { parseMsoDateRange } from '@/lib/mso';
 
-export type MsoMeetSummary = {
-  id: string;
-  name: string;
-  dateStr: string;
-  level: string;
-  isImported: boolean;
-};
-
-type ParsedMsoMeet = {
-  name: string;
-  level: string | null;
-  startDate: string | null;
-  endDate: string | null;
-  allAroundPlace: number | null;
-  scores: { apparatus: string; value: number; place: number | null }[];
-};
-
-const MSO_ORIGIN = 'https://www.meetscoresonline.com';
-const MSO_HEADERS = {
-  'User-Agent':
-    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120 Safari/537.36',
-};
-
-const APPARATUS_MAP: Record<string, string> = {
-  Floor: 'floor_exercise',
-  'Floor Exercise': 'floor_exercise',
-  Pommel: 'pommel_horse',
-  'Pommel Horse': 'pommel_horse',
-  Rings: 'still_rings',
-  'Still Rings': 'still_rings',
-  Vault: 'vault',
-  PBars: 'parallel_bars',
-  'P Bars': 'parallel_bars',
-  'Parallel Bars': 'parallel_bars',
-  HiBar: 'high_bar',
-  'High Bar': 'high_bar',
-  'Horizontal Bar': 'high_bar',
-  Beam: 'balance_beam',
-  Bars: 'uneven_bars',
-  'Uneven Bars': 'uneven_bars',
-};
-
-function safeMeetUrl(meetId: string) {
-  if (!/^\/results\/[A-Za-z0-9._~!$&'()*+,;=:@%/-]+$/.test(meetId)) {
-    throw new Error('Invalid MSO meet identifier.');
-  }
-  return new URL(meetId, MSO_ORIGIN).toString();
-}
+export type MsoMeetSummary = ImportMeetSummary;
 
 async function getLinkedGymnast() {
   const supabase = await createClient();
@@ -76,7 +29,7 @@ async function getLinkedGymnast() {
     return { error: 'Link an MSO Athlete ID to this gymnast first.' as const };
   }
 
-  return { supabase, user, gymnast };
+  return { supabase, gymnast };
 }
 
 export async function fetchMsoMeets() {
@@ -85,30 +38,9 @@ export async function fetchMsoMeets() {
   const { supabase, gymnast } = linked;
 
   try {
-    const response = await fetch(
-      `${MSO_ORIGIN}/Athlete.MyScores/${encodeURIComponent(gymnast.mso_id)}`,
-      { cache: 'no-store', headers: MSO_HEADERS }
-    );
-    if (!response.ok) return { error: `MSO returned status ${response.status}.` };
-
-    const $ = cheerio.load(await response.text());
-    const meets = new Map<string, Omit<MsoMeetSummary, 'isImported'>>();
-
-    $('a[href^="/results/"]').each((_index, element) => {
-      const link = $(element);
-      const id = link.attr('href');
-      const columns = link.closest('tr').find('td');
-      if (!id || columns.length === 0) return;
-
-      const name = $(columns[0]).text().trim() || link.text().trim();
-      const level = $(columns[2]).text().trim();
-      const dateStr = $(columns[4]).text().trim() || 'Date TBD';
-      if (name && name !== level) meets.set(id, { id, name, level, dateStr });
-    });
-
-    if (meets.size === 0) {
-      return { error: 'No meets were found for the linked MSO athlete.' };
-    }
+    const provider = createMsoProvider(gymnast.mso_id);
+    const meets = await provider.listMeets();
+    if (meets.length === 0) return { error: 'No meets were found for the linked MSO athlete.' };
 
     const { data: existing } = await supabase
       .from('competitions')
@@ -121,7 +53,7 @@ export async function fetchMsoMeets() {
 
     return {
       success: true,
-      meets: Array.from(meets.values()).map((meet) => ({
+      meets: meets.map((meet) => ({
         ...meet,
         isImported: ids.has(meet.id) || legacyNames.has(meet.name),
       })),
@@ -132,54 +64,14 @@ export async function fetchMsoMeets() {
   }
 }
 
-async function parseMeet(meet: MsoMeetSummary): Promise<ParsedMsoMeet> {
-  const response = await fetch(safeMeetUrl(meet.id), {
-    cache: 'no-store',
-    headers: MSO_HEADERS,
-  });
-  if (!response.ok) throw new Error(`MSO returned status ${response.status}.`);
-
-  const $ = cheerio.load(await response.text());
-  const name = $('h1.event-title').text().trim() || meet.name;
-  const rawDate = $('#MeetDetails h5 strong').first().text().trim() || meet.dateStr;
-  const scores: ParsedMsoMeet['scores'] = [];
-  let allAroundPlace: number | null = null;
-
-  $('#athlete table tbody tr').each((_index, row) => {
-    const eventLabel = $(row).find('th').text().trim();
-    const value = Number.parseFloat($(row).find('span.score').text().trim());
-    const place = Number.parseInt($(row).find('span.place').text().replace('T', ''), 10);
-
-    if (eventLabel === 'AA') {
-      if (!Number.isNaN(place)) allAroundPlace = place;
-      return;
-    }
-
-    const apparatus = APPARATUS_MAP[eventLabel];
-    if (apparatus && !Number.isNaN(value)) {
-      scores.push({ apparatus, value, place: Number.isNaN(place) ? null : place });
-    }
-  });
-
-  if (scores.length === 0) throw new Error('MSO returned no recognizable event scores.');
-  const { startDate, endDate } = parseMsoDateRange(rawDate);
-  return {
-    name,
-    level: meet.level || null,
-    startDate,
-    endDate,
-    allAroundPlace,
-    scores,
-  };
-}
-
 export async function syncMsoMeet(meet: MsoMeetSummary) {
   const linked = await getLinkedGymnast();
   if ('error' in linked) return { error: linked.error };
   const { supabase, gymnast } = linked;
 
   try {
-    const parsed = await parseMeet(meet);
+    const provider = createMsoProvider(gymnast.mso_id);
+    const parsed = await provider.fetchMeet(meet);
     let { data: existing } = await supabase
       .from('competitions')
       .select('id, notes')
@@ -206,11 +98,13 @@ export async function syncMsoMeet(meet: MsoMeetSummary) {
       p_start_date: parsed.startDate,
       p_end_date: parsed.endDate,
       p_all_around_place: parsed.allAroundPlace,
-      p_notes: existing?.notes ?? null,
-      p_mso_meet_id: meet.id,
+      p_notes: existing?.notes ?? parsed.notes,
+      p_mso_meet_id: parsed.sourceId,
       p_scores: parsed.scores.map((score) => ({
-        ...score,
-        start_value: null,
+        apparatus: score.apparatus,
+        value: score.value,
+        place: score.place,
+        start_value: score.startValue,
       })),
     });
     if (error?.code === '23505') {
