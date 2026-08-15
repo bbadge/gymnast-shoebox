@@ -6,6 +6,7 @@ import {
   majorGymnasticsLevel,
 } from '../lib/gymnastics.ts';
 import { parseMsoDateRange } from '../lib/mso.ts';
+import { parseCsvImports } from '../lib/imports/csv.ts';
 
 test('women and men see the correct apparatus sets', () => {
   assert.deepEqual(apparatusForProgram('female'), [
@@ -44,4 +45,37 @@ test('level chart markers ignore age and session divisions', () => {
   assert.equal(majorGymnasticsLevel('3 Jr A'), '3');
   assert.equal(majorGymnasticsLevel('3 Sr 1'), '3');
   assert.equal(majorGymnasticsLevel('Xcel Gold Jr B'), 'Xcel Gold');
+});
+
+test('long-form CSV rows become one meet with normalized events and dates', () => {
+  const preview = parseCsvImports([
+    'Meet,Date,Level,Event,Score,Place',
+    'Winter Classic,2/14/2026,4,Vault,9.125,3',
+    'Winter Classic,2/14/2026,4,Bars,8.950,5',
+  ].join('\n'));
+
+  assert.equal(preview.meets.length, 1);
+  assert.equal(preview.meets[0].startDate, '2026-02-14');
+  assert.deepEqual(preview.meets[0].scores, [
+    { apparatus: 'vault', value: 9.125, place: 3, startValue: null },
+    { apparatus: 'uneven_bars', value: 8.95, place: 5, startValue: null },
+  ]);
+});
+
+test('wide CSV rows and quoted meet names are supported', () => {
+  const preview = parseCsvImports([
+    'Competition Name,Start Date,Level,Vault,Bars,Beam,Floor',
+    '"Spring Classic, Session 2",2026-03-01,5,9.1,8.8,9.2,9.3',
+  ].join('\n'));
+
+  assert.equal(preview.meets[0].name, 'Spring Classic, Session 2');
+  assert.equal(preview.meets[0].scores.length, 4);
+  assert.equal(preview.meets[0].scores[2].apparatus, 'balance_beam');
+});
+
+test('CSV imports reject impossible calendar dates', () => {
+  assert.throws(
+    () => parseCsvImports('Meet,Date,Event,Score\nBad Date,2/30/2026,Vault,9.1'),
+    /valid calendar date/
+  );
 });

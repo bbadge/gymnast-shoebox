@@ -170,7 +170,7 @@ export default async function Dashboard({
         </div>
         <div className="no-print flex gap-2">
           <Button asChild variant="outline">
-            <Link href="/import"><CloudDownload className="mr-2 h-4 w-4" />MSO Sync</Link>
+            <Link href="/import"><CloudDownload className="mr-2 h-4 w-4" />Import Scores</Link>
           </Button>
           <Button asChild><Link href="/scores/new">Add Meet</Link></Button>
         </div>
@@ -188,8 +188,8 @@ export default async function Dashboard({
         <Card className="text-center py-10">
           <CardHeader><CardTitle>No competitions yet</CardTitle></CardHeader>
           <CardContent>
-            <p className="text-muted-foreground mb-6">Import from MSO or record the first competition manually.</p>
-            <Button asChild><Link href="/import">Import from MSO</Link></Button>
+            <p className="text-muted-foreground mb-6">Import from MSO or CSV, or record the first competition manually.</p>
+            <Button asChild><Link href="/import">Import Scores</Link></Button>
           </CardContent>
         </Card>
       ) : filtered.length === 0 ? (
