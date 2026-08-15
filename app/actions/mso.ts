@@ -213,6 +213,9 @@ export async function syncMsoMeet(meet: MsoMeetSummary) {
         start_value: null,
       })),
     });
+    if (error?.code === '23505') {
+      return { error: 'This meet is already in the archive. Refresh the import list and try again.' };
+    }
     if (error) return { error: error.message };
 
     revalidatePath('/dashboard');

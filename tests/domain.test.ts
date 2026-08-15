@@ -26,6 +26,10 @@ test('MSO date ranges remain calendar dates', () => {
     startDate: '2026-01-17',
     endDate: '2026-01-18',
   });
+  assert.deepEqual(parseMsoDateRange('February 28 - March 2, 2026'), {
+    startDate: '2026-02-28',
+    endDate: '2026-03-02',
+  });
 });
 
 test('undated competitions receive an explicit season bucket', () => {

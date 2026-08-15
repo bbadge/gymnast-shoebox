@@ -1,16 +1,27 @@
+const MONTHS = new Map(
+  [
+    'january', 'february', 'march', 'april', 'may', 'june',
+    'july', 'august', 'september', 'october', 'november', 'december',
+  ].map((month, index) => [month, index + 1])
+);
+
 function dateOnly(value: string, fallbackYear?: string) {
-  const withYear = /\b\d{4}\b/.test(value)
-    ? value
-    : fallbackYear
-      ? `${value}, ${fallbackYear}`
-      : value;
-  const parsed = new Date(withYear);
-  if (Number.isNaN(parsed.getTime())) return null;
-  return [
-    parsed.getUTCFullYear(),
-    String(parsed.getUTCMonth() + 1).padStart(2, '0'),
-    String(parsed.getUTCDate()).padStart(2, '0'),
-  ].join('-');
+  const match = value.trim().match(/^([A-Za-z]+)\s+(\d{1,2})(?:,?\s+(\d{4}))?$/);
+  if (!match) return null;
+
+  const month = MONTHS.get(match[1].toLowerCase());
+  const day = Number(match[2]);
+  const year = Number(match[3] ?? fallbackYear);
+  if (!month || !year || day < 1 || day > 31) return null;
+
+  const validationDate = new Date(Date.UTC(year, month - 1, day));
+  if (
+    validationDate.getUTCFullYear() !== year ||
+    validationDate.getUTCMonth() + 1 !== month ||
+    validationDate.getUTCDate() !== day
+  ) return null;
+
+  return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
 }
 
 export function parseMsoDateRange(raw: string) {
