@@ -6,7 +6,7 @@ import {
   majorGymnasticsLevel,
 } from '../lib/gymnastics.ts';
 import { parseMsoDateRange } from '../lib/mso.ts';
-import { parseCsvImports } from '../lib/imports/csv.ts';
+import { analyzeCsv, parseCsvImports } from '../lib/imports/csv.ts';
 
 test('women and men see the correct apparatus sets', () => {
   assert.deepEqual(apparatusForProgram('female'), [
@@ -78,4 +78,24 @@ test('CSV imports reject impossible calendar dates', () => {
     () => parseCsvImports('Meet,Date,Event,Score\nBad Date,2/30/2026,Vault,9.1'),
     /valid calendar date/
   );
+});
+
+test('CSV analysis suggests known columns and allows custom mappings', () => {
+  const csv = [
+    'Competition Label,When,Discipline,Result',
+    'Mapped Invitational,3/7/2026,Vault,9.275',
+  ].join('\n');
+  const analysis = analyzeCsv(csv);
+
+  assert.equal(analysis.rowCount, 1);
+  assert.equal(analysis.suggestedMapping.name, -1);
+  const preview = parseCsvImports(csv, {
+    ...analysis.suggestedMapping,
+    name: 0,
+    startDate: 1,
+    event: 2,
+    score: 3,
+  });
+  assert.equal(preview.meets[0].name, 'Mapped Invitational');
+  assert.equal(preview.meets[0].scores[0].value, 9.275);
 });
