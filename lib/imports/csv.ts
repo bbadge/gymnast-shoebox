@@ -14,6 +14,15 @@ const HEADER_ALIASES = {
   notes: ['notes', 'note'],
 } as const;
 
+export type CsvMappingField = keyof typeof HEADER_ALIASES;
+export type CsvColumnMapping = Record<CsvMappingField, number>;
+
+export type CsvAnalysis = {
+  headers: string[];
+  rowCount: number;
+  suggestedMapping: CsvColumnMapping;
+};
+
 const APPARATUS_ALIASES: Record<string, Apparatus> = {
   vault: 'vault',
   vt: 'vault',
@@ -88,6 +97,27 @@ function findColumn(headers: string[], aliases: readonly string[]) {
   return headers.findIndex((header) => aliases.includes(header));
 }
 
+function columnMapping(headers: string[]): CsvColumnMapping {
+  const normalizedHeaders = headers.map(normalized);
+  return Object.fromEntries(
+    Object.entries(HEADER_ALIASES).map(([key, aliases]) => [
+      key,
+      findColumn(normalizedHeaders, aliases),
+    ])
+  ) as CsvColumnMapping;
+}
+
+export function analyzeCsv(csv: string): CsvAnalysis {
+  if (!csv.trim()) throw new Error('Choose a CSV file that contains meet scores.');
+  const rows = parseRows(csv.replace(/^\uFEFF/, ''));
+  if (rows.length < 2) throw new Error('The CSV needs a header row and at least one score row.');
+  return {
+    headers: rows[0],
+    rowCount: rows.length - 1,
+    suggestedMapping: columnMapping(rows[0]),
+  };
+}
+
 function valueAt(row: string[], column: number) {
   return column >= 0 ? row[column]?.trim() ?? '' : '';
 }
@@ -155,15 +185,16 @@ function scoreFor(
   return { apparatus, value, place, startValue };
 }
 
-export function parseCsvImports(csv: string): CsvImportPreview {
+export function parseCsvImports(
+  csv: string,
+  mapping?: Partial<CsvColumnMapping>
+): CsvImportPreview {
   if (!csv.trim()) throw new Error('Choose a CSV file that contains meet scores.');
   const rows = parseRows(csv.replace(/^\uFEFF/, ''));
   if (rows.length < 2) throw new Error('The CSV needs a header row and at least one score row.');
 
   const headers = rows[0].map(normalized);
-  const columns = Object.fromEntries(
-    Object.entries(HEADER_ALIASES).map(([key, aliases]) => [key, findColumn(headers, aliases)])
-  ) as Record<keyof typeof HEADER_ALIASES, number>;
+  const columns = { ...columnMapping(rows[0]), ...mapping };
   if (columns.name < 0) throw new Error('Add a Meet Name, Meet, or Competition column.');
 
   const wideColumns = new Map<Apparatus, number>();

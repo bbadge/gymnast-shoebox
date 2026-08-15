@@ -20,10 +20,23 @@ export default async function ImportPage() {
     .eq('id', activeGymnastId)
     .single();
 
+  const { data: importBatches } = await supabase
+    .from('import_batches')
+    .select('id, source_name, meet_count, created_at')
+    .eq('gymnast_id', activeGymnastId)
+    .order('created_at', { ascending: false })
+    .limit(5);
+
   return (
     <ImportView
       gymnastName={gymnast?.name || 'this gymnast'}
       initialMsoId={gymnast?.mso_id}
+      initialImportBatches={(importBatches ?? []).map((batch) => ({
+        id: batch.id,
+        sourceName: batch.source_name || 'CSV import',
+        meetCount: batch.meet_count,
+        createdAt: batch.created_at,
+      }))}
     />
   );
 }

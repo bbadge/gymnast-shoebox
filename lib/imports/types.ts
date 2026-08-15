@@ -30,6 +30,13 @@ export type ImportedMeet = {
   scores: ImportedScore[];
 };
 
+export type ImportBatchSummary = {
+  id: string;
+  sourceName: string;
+  meetCount: number;
+  createdAt: string;
+};
+
 export interface MeetImportProvider {
   readonly id: ImportProviderId;
   listMeets(): Promise<ImportMeetSummary[]>;
