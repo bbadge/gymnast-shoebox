@@ -46,6 +46,9 @@ async function saveCompetition(id: string | null, formData: FormData) {
 
     if (error) {
       console.error('Competition save failed:', error);
+      if (error.code === '23505') {
+        return { error: 'A meet with this name and start date already exists.' };
+      }
       return { error: error.message };
     }
   } catch (error) {
