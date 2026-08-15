@@ -99,3 +99,19 @@ test('CSV analysis suggests known columns and allows custom mappings', () => {
   assert.equal(preview.meets[0].name, 'Mapped Invitational');
   assert.equal(preview.meets[0].scores[0].value, 9.275);
 });
+
+test('tab-separated spreadsheet rows use the same import pipeline', () => {
+  const preview = parseCsvImports([
+    'Meet\tDate\tLevel\tEvent\tScore\tPlace',
+    'Copied Results\t4/11/2026\t5 Sr A\tBeam\t9.175\t4',
+  ].join('\n'));
+
+  assert.equal(preview.meets[0].name, 'Copied Results');
+  assert.equal(preview.meets[0].level, '5 Sr A');
+  assert.deepEqual(preview.meets[0].scores[0], {
+    apparatus: 'balance_beam',
+    value: 9.175,
+    place: 4,
+    startValue: null,
+  });
+});
