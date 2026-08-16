@@ -58,11 +58,19 @@ function normalized(value: string) {
   return value.trim().toLowerCase().replace(/[^a-z0-9]/g, '');
 }
 
+function delimiterFor(text: string) {
+  const header = text.split(/\r?\n/, 1)[0] ?? '';
+  const tabs = header.split('\t').length - 1;
+  const commas = header.split(',').length - 1;
+  return tabs > commas ? '\t' : ',';
+}
+
 function parseRows(csv: string) {
   const rows: string[][] = [];
   let row: string[] = [];
   let field = '';
   let quoted = false;
+  const delimiter = delimiterFor(csv);
 
   for (let index = 0; index < csv.length; index += 1) {
     const character = csv[index];
@@ -73,7 +81,7 @@ function parseRows(csv: string) {
       } else {
         quoted = !quoted;
       }
-    } else if (character === ',' && !quoted) {
+    } else if (character === delimiter && !quoted) {
       row.push(field.trim());
       field = '';
     } else if ((character === '\n' || character === '\r') && !quoted) {

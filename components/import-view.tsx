@@ -78,6 +78,7 @@ export function ImportView({
   const [meets, setMeets] = useState<MsoMeetSummary[]>([]);
   const [csvText, setCsvText] = useState('');
   const [csvSourceName, setCsvSourceName] = useState('');
+  const [pastedText, setPastedText] = useState('');
   const [csvHeaders, setCsvHeaders] = useState<string[]>([]);
   const [csvMapping, setCsvMapping] = useState<CsvColumnMapping | null>(null);
   const [csvMeets, setCsvMeets] = useState<ImportedMeet[]>([]);
@@ -153,33 +154,50 @@ export function ImportView({
       setCsvMeets([]);
       setCsvWarnings([]);
       setDuplicateCsvKeys([]);
-      toast.error(error instanceof Error ? error.message : 'Unable to read that CSV.');
+      toast.error(error instanceof Error ? error.message : 'Unable to read those score rows.');
     }
+  };
+
+  const loadScoreText = (text: string, sourceName: string) => {
+    const analysis = analyzeCsv(text);
+    setCsvText(text);
+    setCsvSourceName(sourceName);
+    setCsvHeaders(analysis.headers);
+    setCsvMapping(analysis.suggestedMapping);
+    updateCsvPreview(text, analysis.suggestedMapping);
+    toast.success(`Read ${analysis.rowCount} score row${analysis.rowCount === 1 ? '' : 's'}. Review the mapping and meets below.`);
   };
 
   const previewCsv = async (file?: File) => {
     if (!file) return;
     if (file.size > 2_000_000) {
-      toast.error('Choose a CSV smaller than 2 MB. That is already a heroic number of meets.');
+      toast.error('Choose a score file smaller than 2 MB. That is already a heroic number of meets.');
       return;
     }
 
     try {
       const text = await file.text();
-      const analysis = analyzeCsv(text);
-      setCsvText(text);
-      setCsvSourceName(file.name);
-      setCsvHeaders(analysis.headers);
-      setCsvMapping(analysis.suggestedMapping);
-      updateCsvPreview(text, analysis.suggestedMapping);
-      toast.success(`Read ${analysis.rowCount} score row${analysis.rowCount === 1 ? '' : 's'}. Review the mapping and meets below.`);
+      loadScoreText(text, file.name);
     } catch (error) {
       setCsvText('');
       setCsvHeaders([]);
       setCsvMapping(null);
       setCsvMeets([]);
       setCsvWarnings([]);
-      toast.error(error instanceof Error ? error.message : 'Unable to read that CSV.');
+      toast.error(error instanceof Error ? error.message : 'Unable to read that score file.');
+    }
+  };
+
+  const previewPastedRows = () => {
+    if (!pastedText.trim()) {
+      toast.error('Paste score rows first. Include the header row so columns can be matched.');
+      return;
+    }
+
+    try {
+      loadScoreText(pastedText, 'Pasted score table');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Unable to read those pasted score rows.');
     }
   };
 
@@ -274,20 +292,20 @@ export function ImportView({
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <FileSpreadsheet className="h-5 w-5" /> CSV file
+            <FileSpreadsheet className="h-5 w-5" /> Score file or pasted table
           </CardTitle>
           <CardDescription>
-            Match the file&apos;s columns, review duplicate warnings, then import every new meet in one reversible batch. The original file is not retained.
+            Upload CSV/TSV or paste rows from a spreadsheet. Match columns, review duplicates, then import every new meet in one reversible batch. Source data is not retained.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-5">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
             <div className="grid w-full max-w-md gap-1.5">
-              <Label htmlFor="scoreCsv">Score CSV</Label>
+              <Label htmlFor="scoreCsv">Score file</Label>
               <Input
                 id="scoreCsv"
                 type="file"
-                accept=".csv,text/csv"
+                accept=".csv,.tsv,.txt,text/csv,text/tab-separated-values,text/plain"
                 onChange={(event) => void previewCsv(event.target.files?.[0])}
                 disabled={isPending}
               />
@@ -300,6 +318,23 @@ export function ImportView({
                 <CloudDownload className="mr-2 h-4 w-4" /> Download template
               </a>
             </Button>
+          </div>
+
+          <div className="grid gap-2">
+            <Label htmlFor="pastedScores">Or paste score rows</Label>
+            <textarea
+              id="pastedScores"
+              className="min-h-28 w-full rounded-md border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              placeholder={'Meet\tDate\tLevel\tEvent\tScore\tPlace'}
+              value={pastedText}
+              onChange={(event) => setPastedText(event.target.value)}
+              disabled={isPending}
+            />
+            <div>
+              <Button type="button" variant="outline" onClick={previewPastedRows} disabled={isPending || !pastedText.trim()}>
+                Preview pasted rows
+              </Button>
+            </div>
           </div>
 
           {csvMapping && csvHeaders.length > 0 && (
@@ -386,7 +421,7 @@ export function ImportView({
       {importBatches.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2"><History className="h-5 w-5" /> Recent CSV imports</CardTitle>
+            <CardTitle className="flex items-center gap-2"><History className="h-5 w-5" /> Recent file imports</CardTitle>
             <CardDescription>Undo removes only meets created by that import batch.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">

@@ -12,6 +12,7 @@ import {
   apparatusForProgram,
   competitionSeason,
   displayApparatus,
+  displayGymnasticsLevel,
   formatCalendarDate,
   majorGymnasticsLevel,
 } from '@/lib/gymnastics';
@@ -43,18 +44,19 @@ type PRItem = {
   place: number | null;
   date: string | null;
   meetName: string;
+  level: string | null;
 };
 
 function placeBadgeClass(place?: number | null) {
   if (!place) return 'border border-border bg-muted text-muted-foreground';
   if (place === 1) {
-    return 'border border-yellow-500 bg-yellow-100 text-yellow-950 dark:border-yellow-400 dark:bg-yellow-400/20 dark:text-yellow-200';
+    return 'border border-amber-500 bg-amber-300 text-amber-950 shadow-sm dark:border-amber-300 dark:bg-amber-400/35 dark:text-amber-100';
   }
   if (place === 2) {
-    return 'border border-slate-400 bg-slate-100 text-slate-900 dark:border-slate-300 dark:bg-slate-300/20 dark:text-slate-100';
+    return 'border border-slate-500 bg-slate-300 text-slate-950 shadow-sm dark:border-slate-200 dark:bg-slate-300/35 dark:text-white';
   }
   if (place === 3) {
-    return 'border border-orange-700 bg-orange-100 text-orange-950 dark:border-orange-500 dark:bg-orange-600/20 dark:text-orange-200';
+    return 'border border-orange-800 bg-orange-300 text-orange-950 shadow-sm dark:border-orange-400 dark:bg-orange-600/40 dark:text-orange-100';
   }
   return 'border border-border bg-muted text-muted-foreground';
 }
@@ -82,6 +84,7 @@ function getPersonalRecords(competitions: Competition[], eventOrder: string[]) {
         place: score.place ?? null,
         date: competition.start_date,
         meetName: competition.name,
+        level: majorGymnasticsLevel(competition.level ?? null),
       });
     }
     if (competition.all_around_score != null) {
@@ -92,6 +95,7 @@ function getPersonalRecords(competitions: Competition[], eventOrder: string[]) {
         place: competition.all_around_place ?? null,
         date: competition.start_date,
         meetName: competition.name,
+        level: majorGymnasticsLevel(competition.level ?? null),
       });
     }
   }
@@ -203,7 +207,10 @@ export default async function Dashboard({
                 <div key={record.key} className="flex items-center justify-between rounded-lg border px-3 py-2">
                   <div>
                     <p className="text-sm font-medium">{record.eventLabel}</p>
-                    <p className="text-xs text-muted-foreground">{record.meetName}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {record.meetName}
+                      {record.level ? ` · ${displayGymnasticsLevel(record.level)}` : ''}
+                    </p>
                   </div>
                   <div className="text-right">
                     <p className="font-semibold">{record.score.toFixed(3)}</p>
