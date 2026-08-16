@@ -16,6 +16,7 @@ import {
   displayPlacementPercentile,
   formatCalendarDate,
   majorGymnasticsLevel,
+  placementPercentile,
 } from '@/lib/gymnastics';
 import { createClient } from '@/lib/supabase/server';
 
@@ -157,12 +158,13 @@ export default async function Dashboard({
   const trendSeries = eventOrder.map((apparatus) => ({
     apparatus,
     points: chronological.flatMap((competition) => {
-      const score = competition.scores?.find((item) => item.apparatus === apparatus)?.value;
-      return score == null
+      const score = competition.scores?.find((item) => item.apparatus === apparatus);
+      return score?.value == null
         ? []
         : [{
             label: `${formatCalendarDate(competition.start_date)} — ${competition.name}`,
-            score: Number(score),
+            score: Number(score.value),
+            fieldPercentile: placementPercentile(score.place, score.field_size),
             level: majorGymnasticsLevel(competition.level ?? null),
           }];
     }),
