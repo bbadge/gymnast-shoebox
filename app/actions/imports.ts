@@ -21,8 +21,12 @@ const importedMeetSchema = z.object({
     apparatus: z.enum(APPARATUSES),
     value: z.number().min(0).max(100),
     place: z.number().int().positive().nullable(),
+    fieldSize: z.number().int().positive().nullable(),
     startValue: z.number().min(0).max(100).nullable(),
-  })).min(1).max(APPARATUSES.length),
+  }).refine(
+    (score) => !score.place || !score.fieldSize || score.place <= score.fieldSize,
+    { message: 'Field size cannot be smaller than place.' }
+  )).min(1).max(APPARATUSES.length),
 });
 const importedBatchSchema = z.array(importedMeetSchema).min(1).max(100);
 

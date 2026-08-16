@@ -13,6 +13,7 @@ import {
   competitionSeason,
   displayApparatus,
   displayGymnasticsLevel,
+  displayPlacementPercentile,
   formatCalendarDate,
   majorGymnasticsLevel,
 } from '@/lib/gymnastics';
@@ -22,6 +23,7 @@ type ScoreItem = {
   apparatus: string;
   value: number | null;
   place?: number | null;
+  field_size?: number | null;
 };
 
 type Competition = {
@@ -42,6 +44,7 @@ type PRItem = {
   eventLabel: string;
   score: number;
   place: number | null;
+  fieldSize: number | null;
   date: string | null;
   meetName: string;
   level: string | null;
@@ -82,6 +85,7 @@ function getPersonalRecords(competitions: Competition[], eventOrder: string[]) {
         eventLabel: displayApparatus(score.apparatus),
         score: Number(score.value),
         place: score.place ?? null,
+        fieldSize: score.field_size ?? null,
         date: competition.start_date,
         meetName: competition.name,
         level: majorGymnasticsLevel(competition.level ?? null),
@@ -93,6 +97,7 @@ function getPersonalRecords(competitions: Competition[], eventOrder: string[]) {
         eventLabel: 'All Around',
         score: Number(competition.all_around_score),
         place: competition.all_around_place ?? null,
+        fieldSize: null,
         date: competition.start_date,
         meetName: competition.name,
         level: majorGymnasticsLevel(competition.level ?? null),
@@ -192,7 +197,7 @@ export default async function Dashboard({
         <Card className="text-center py-10">
           <CardHeader><CardTitle>No competitions yet</CardTitle></CardHeader>
           <CardContent>
-            <p className="text-muted-foreground mb-6">Import from MSO or CSV, or record the first competition manually.</p>
+            <p className="text-muted-foreground mb-6">Import from MSO or a score file, or record the first competition manually.</p>
             <Button asChild><Link href="/import">Import Scores</Link></Button>
           </CardContent>
         </Card>
@@ -214,7 +219,12 @@ export default async function Dashboard({
                   </div>
                   <div className="text-right">
                     <p className="font-semibold">{record.score.toFixed(3)}</p>
-                    {record.place ? <span className={`rounded-full px-2 py-0.5 text-xs ${placeBadgeClass(record.place)}`}>#{record.place}</span> : null}
+                    {record.place ? <span className={`rounded-full px-2 py-0.5 text-xs ${placeBadgeClass(record.place)}`}>#{record.place}{record.fieldSize ? `/${record.fieldSize}` : ''}</span> : null}
+                    {displayPlacementPercentile(record.place, record.fieldSize) ? (
+                      <p className="mt-1 text-[10px] text-muted-foreground">
+                        {displayPlacementPercentile(record.place, record.fieldSize)}
+                      </p>
+                    ) : null}
                   </div>
                 </div>
               ))}
@@ -265,9 +275,14 @@ export default async function Dashboard({
                         <div key={apparatus}>
                           <div className="flex items-center gap-1.5">
                             <p className="text-xs font-medium uppercase text-muted-foreground">{displayApparatus(apparatus)}</p>
-                            {score.place ? <span className={`rounded-full px-1.5 py-0.5 text-[10px] ${placeBadgeClass(score.place)}`}>#{score.place}</span> : null}
+                            {score.place ? <span className={`rounded-full px-1.5 py-0.5 text-[10px] ${placeBadgeClass(score.place)}`}>#{score.place}{score.field_size ? `/${score.field_size}` : ''}</span> : null}
                           </div>
                           <p className="text-lg font-semibold">{score.value == null ? '—' : Number(score.value).toFixed(3)}</p>
+                          {displayPlacementPercentile(score.place, score.field_size) ? (
+                            <p className="text-[10px] text-muted-foreground">
+                              {displayPlacementPercentile(score.place, score.field_size)}
+                            </p>
+                          ) : null}
                         </div>
                       );
                     })}

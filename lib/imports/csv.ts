@@ -9,6 +9,7 @@ const HEADER_ALIASES = {
   event: ['event', 'apparatus'],
   score: ['score', 'value', 'finalscore'],
   place: ['place', 'placement', 'rank'],
+  fieldSize: ['fieldsize', 'competitors', 'participants', 'entries'],
   startValue: ['startvalue', 'sv', 'difficulty'],
   allAroundPlace: ['allaroundplace', 'aaplace', 'allaroundplacement'],
   notes: ['notes', 'note'],
@@ -181,16 +182,21 @@ function scoreFor(
   apparatus: Apparatus,
   scoreRaw: string,
   placeRaw: string,
+  fieldSizeRaw: string,
   startValueRaw: string,
   rowNumber: number
 ): ImportedScore | null {
   const value = optionalNumber(scoreRaw, 'score', rowNumber);
   const place = optionalPlace(placeRaw, 'place', rowNumber);
+  const fieldSize = optionalPlace(fieldSizeRaw, 'field size', rowNumber);
   const startValue = optionalNumber(startValueRaw, 'start value', rowNumber);
-  if (value === null && place === null && startValue === null) return null;
+  if (value === null && place === null && fieldSize === null && startValue === null) return null;
   if (value === null) throw new Error(`Row ${rowNumber}: ${apparatus} needs a score.`);
   if (value < 0 || value > 100) throw new Error(`Row ${rowNumber}: score must be between 0 and 100.`);
-  return { apparatus, value, place, startValue };
+  if (place && fieldSize && place > fieldSize) {
+    throw new Error(`Row ${rowNumber}: field size cannot be smaller than place.`);
+  }
+  return { apparatus, value, place, fieldSize, startValue };
 }
 
 export function parseCsvImports(
@@ -263,6 +269,7 @@ export function parseCsvImports(
             apparatus,
             valueAt(row, columns.score),
             valueAt(row, columns.place),
+            valueAt(row, columns.fieldSize),
             valueAt(row, columns.startValue),
             rowNumber
           );
@@ -271,7 +278,14 @@ export function parseCsvImports(
       }
     } else {
       wideColumns.forEach((column, apparatus) => {
-        const score = scoreFor(apparatus, valueAt(row, column), '', '', rowNumber);
+        const score = scoreFor(
+          apparatus,
+          valueAt(row, column),
+          '',
+          valueAt(row, columns.fieldSize),
+          '',
+          rowNumber
+        );
         if (score) scores.push(score);
       });
     }

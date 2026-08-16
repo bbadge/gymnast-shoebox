@@ -15,6 +15,7 @@ export type ImportedScore = {
   apparatus: Apparatus;
   value: number;
   place: number | null;
+  fieldSize: number | null;
   startValue: number | null;
 };
 
