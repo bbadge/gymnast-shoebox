@@ -5,7 +5,9 @@ import {
   competitionSeason,
   displayPlacementPercentile,
   majorGymnasticsLevel,
+  linearTrend,
   placementPercentile,
+  summarizeAllAroundProgress,
 } from '../lib/gymnastics.ts';
 import { parseMsoDateRange } from '../lib/mso.ts';
 import { analyzeCsv, parseCsvImports } from '../lib/imports/csv.ts';
@@ -127,4 +129,26 @@ test('placement percentile compares rank across differently sized fields', () =>
   assert.equal(placementPercentile(2, null), null);
   assert.equal(displayPlacementPercentile(3, 40), '95th field percentile');
   assert.equal(displayPlacementPercentile(90, 100), '10th field percentile');
+});
+
+test('trend lines summarize the direction of a score series', () => {
+  assert.deepEqual(linearTrend([8, 9, 10]), { start: 8, end: 10, slope: 1 });
+  assert.equal(linearTrend([9.1]), null);
+});
+
+test('all-around progress uses complete points from the latest major level', () => {
+  const summary = summarizeAllAroundProgress([
+    { score: 35, level: '5' },
+    { score: 35.5, level: '6' },
+    { score: 36, level: '6' },
+    { score: 35.75, level: '6' },
+    { score: 36.25, level: '6' },
+  ]);
+
+  assert.equal(summary?.level, '6');
+  assert.equal(summary?.levelMeetCount, 4);
+  assert.equal(summary?.recentMeetCount, 3);
+  assert.equal(summary?.recentAverage, 36);
+  assert.equal(summary?.personalBest, 36.25);
+  assert.equal(summary?.gapToBest, 0.25);
 });
