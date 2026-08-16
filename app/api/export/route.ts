@@ -43,7 +43,7 @@ export async function GET(request: Request) {
   const scoresResult = competitionIds.length
     ? await supabase
         .from('scores')
-        .select('id, competition_id, apparatus, value, start_value, place, created_at, updated_at')
+        .select('id, competition_id, apparatus, value, start_value, place, field_size, created_at, updated_at')
         .in('competition_id', competitionIds)
         .order('apparatus')
     : { data: [], error: null };
@@ -58,7 +58,7 @@ export async function GET(request: Request) {
     const batchById = new Map(importBatches?.map((batch) => [batch.id, batch]));
     const header = [
       'Gymnast', 'Competition', 'Start Date', 'End Date', 'Level',
-      'All-Around Place', 'Event', 'Score', 'Start Value', 'Event Place', 'Notes',
+      'All-Around Place', 'Event', 'Score', 'Start Value', 'Event Place', 'Field Size', 'Notes',
       'Import Source', 'Import File', 'Imported At',
     ];
     const rows = (competitions ?? []).flatMap((competition) => {
@@ -77,6 +77,7 @@ export async function GET(request: Request) {
         score?.value,
         score?.start_value,
         score?.place,
+        score?.field_size,
         competition.notes,
         competition.import_batch_id
           ? batchById.get(competition.import_batch_id)?.provider
@@ -106,7 +107,7 @@ export async function GET(request: Request) {
   }
 
   const archive = {
-    schemaVersion: 2,
+    schemaVersion: 3,
     exportedAt: new Date().toISOString(),
     importBatches: importBatches ?? [],
     gymnasts: (gymnasts ?? []).map((gymnast) => ({

@@ -100,6 +100,7 @@ export function createMsoProvider(athleteId: string): MeetImportProvider {
             apparatus,
             value,
             place: Number.isNaN(place) ? null : place,
+            fieldSize: null,
             startValue: null,
           });
         }

@@ -40,6 +40,7 @@ async function saveCompetition(id: string | null, formData: FormData) {
         apparatus: score.apparatus,
         value: score.value,
         place: score.place,
+        field_size: score.fieldSize,
         start_value: score.startValue,
       })),
     });

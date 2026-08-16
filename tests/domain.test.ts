@@ -3,7 +3,9 @@ import test from 'node:test';
 import {
   apparatusForProgram,
   competitionSeason,
+  displayPlacementPercentile,
   majorGymnasticsLevel,
+  placementPercentile,
 } from '../lib/gymnastics.ts';
 import { parseMsoDateRange } from '../lib/mso.ts';
 import { analyzeCsv, parseCsvImports } from '../lib/imports/csv.ts';
@@ -57,8 +59,8 @@ test('long-form CSV rows become one meet with normalized events and dates', () =
   assert.equal(preview.meets.length, 1);
   assert.equal(preview.meets[0].startDate, '2026-02-14');
   assert.deepEqual(preview.meets[0].scores, [
-    { apparatus: 'vault', value: 9.125, place: 3, startValue: null },
-    { apparatus: 'uneven_bars', value: 8.95, place: 5, startValue: null },
+    { apparatus: 'vault', value: 9.125, place: 3, fieldSize: null, startValue: null },
+    { apparatus: 'uneven_bars', value: 8.95, place: 5, fieldSize: null, startValue: null },
   ]);
 });
 
@@ -102,8 +104,8 @@ test('CSV analysis suggests known columns and allows custom mappings', () => {
 
 test('tab-separated spreadsheet rows use the same import pipeline', () => {
   const preview = parseCsvImports([
-    'Meet\tDate\tLevel\tEvent\tScore\tPlace',
-    'Copied Results\t4/11/2026\t5 Sr A\tBeam\t9.175\t4',
+    'Meet\tDate\tLevel\tEvent\tScore\tPlace\tField Size',
+    'Copied Results\t4/11/2026\t5 Sr A\tBeam\t9.175\t4\t31',
   ].join('\n'));
 
   assert.equal(preview.meets[0].name, 'Copied Results');
@@ -112,6 +114,17 @@ test('tab-separated spreadsheet rows use the same import pipeline', () => {
     apparatus: 'balance_beam',
     value: 9.175,
     place: 4,
+    fieldSize: 31,
     startValue: null,
   });
+});
+
+test('placement percentile compares rank across differently sized fields', () => {
+  assert.equal(placementPercentile(1, 20), 100);
+  assert.equal(placementPercentile(3, 5), 50);
+  assert.equal(placementPercentile(3, 40), 95);
+  assert.equal(placementPercentile(6, 5), null);
+  assert.equal(placementPercentile(2, null), null);
+  assert.equal(displayPlacementPercentile(3, 40), '95th field percentile');
+  assert.equal(displayPlacementPercentile(90, 100), '10th field percentile');
 });

@@ -83,3 +83,24 @@ export function displayGymnasticsLevel(level: string | null) {
   if (!level) return 'Level not recorded';
   return /^(?:level|xcel)\b/i.test(level) ? level : `Level ${level}`;
 }
+
+export function placementPercentile(place?: number | null, fieldSize?: number | null) {
+  if (!place || !fieldSize || fieldSize < 2 || place > fieldSize) return null;
+  return Math.round(((fieldSize - place) / (fieldSize - 1)) * 100);
+}
+
+export function displayPlacementPercentile(place?: number | null, fieldSize?: number | null) {
+  const percentile = placementPercentile(place, fieldSize);
+  if (percentile === null) return null;
+  const remainder = percentile % 100;
+  const suffix = remainder >= 11 && remainder <= 13
+    ? 'th'
+    : percentile % 10 === 1
+      ? 'st'
+      : percentile % 10 === 2
+        ? 'nd'
+        : percentile % 10 === 3
+          ? 'rd'
+          : 'th';
+  return `${percentile}${suffix} field percentile`;
+}

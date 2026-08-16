@@ -30,11 +30,11 @@ import type { ImportBatchSummary, ImportedMeet } from '@/lib/imports/types';
 import { toast } from 'sonner';
 
 const CSV_TEMPLATE = [
-  'Meet Name,Date,Level,Event,Score,Place,Start Value,All Around Place,Notes',
-  'Example Invitational,2/14/2026,4,Vault,9.125,3,,2,Optional note',
-  'Example Invitational,2/14/2026,4,Bars,8.950,5,,,',
-  'Example Invitational,2/14/2026,4,Beam,9.200,2,,,',
-  'Example Invitational,2/14/2026,4,Floor,9.300,1,,,',
+  'Meet Name,Date,Level,Event,Score,Place,Field Size,Start Value,All Around Place,Notes',
+  'Example Invitational,2/14/2026,4,Vault,9.125,3,24,,2,Optional note',
+  'Example Invitational,2/14/2026,4,Bars,8.950,5,24,,,',
+  'Example Invitational,2/14/2026,4,Beam,9.200,2,24,,,',
+  'Example Invitational,2/14/2026,4,Floor,9.300,1,24,,,',
 ].join('\n');
 
 const MAPPING_FIELDS: { field: CsvMappingField; label: string; required?: boolean }[] = [
@@ -45,6 +45,7 @@ const MAPPING_FIELDS: { field: CsvMappingField; label: string; required?: boolea
   { field: 'event', label: 'Event' },
   { field: 'score', label: 'Score' },
   { field: 'place', label: 'Place' },
+  { field: 'fieldSize', label: 'Field size' },
   { field: 'startValue', label: 'Start value' },
   { field: 'allAroundPlace', label: 'All-around place' },
   { field: 'notes', label: 'Notes' },

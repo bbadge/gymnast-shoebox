@@ -24,8 +24,12 @@ const scoreSchema = z.object({
   apparatus: z.enum(APPARATUSES),
   value: z.number().min(0).max(100).nullable(),
   place: z.number().int().positive().nullable(),
+  fieldSize: z.number().int().positive().nullable(),
   startValue: z.number().min(0).max(100).nullable(),
-});
+}).refine(
+  (score) => !score.place || !score.fieldSize || score.place <= score.fieldSize,
+  { message: 'Field size cannot be smaller than place.' }
+);
 
 export type ParsedCompetitionInput = z.infer<typeof competitionSchema> & {
   scores: z.infer<typeof scoreSchema>[];
@@ -50,6 +54,7 @@ export function parseCompetitionForm(formData: FormData): ParsedCompetitionInput
       apparatus,
       value: optionalNumber(formData.get(apparatus)),
       place: optionalInteger(formData.get(`${apparatus}_place`)),
+      fieldSize: optionalInteger(formData.get(`${apparatus}_field_size`)),
       startValue: optionalNumber(formData.get(`${apparatus}_sv`)),
     })
   );

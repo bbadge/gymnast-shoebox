@@ -90,6 +90,17 @@ export async function syncMsoMeet(meet: MsoMeetSummary) {
       existing = legacy.data;
     }
 
+    const existingFieldSizes = new Map<string, number>();
+    if (existing?.id) {
+      const { data: existingScores } = await supabase
+        .from('scores')
+        .select('apparatus, field_size')
+        .eq('competition_id', existing.id);
+      for (const score of existingScores ?? []) {
+        if (score.field_size) existingFieldSizes.set(score.apparatus, score.field_size);
+      }
+    }
+
     const { error } = await supabase.rpc('save_competition', {
       p_competition_id: existing?.id ?? null,
       p_gymnast_id: gymnast.id,
@@ -104,6 +115,7 @@ export async function syncMsoMeet(meet: MsoMeetSummary) {
         apparatus: score.apparatus,
         value: score.value,
         place: score.place,
+        field_size: score.fieldSize ?? existingFieldSizes.get(score.apparatus) ?? null,
         start_value: score.startValue,
       })),
     });

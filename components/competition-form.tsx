@@ -35,6 +35,7 @@ interface CompetitionFormProps {
       apparatus: string;
       value: number | null;
       place: number | null;
+      field_size: number | null;
       start_value: number | null;
     }[];
   };
@@ -85,6 +86,9 @@ export function CompetitionForm({
   const getSV = (app: string) =>
     (initialData?.scores || []).find((s) => s.apparatus === app)?.start_value ??
     '';
+
+  const getFieldSize = (app: string) =>
+    (initialData?.scores || []).find((s) => s.apparatus === app)?.field_size ?? '';
 
   return (
     <Card>
@@ -208,7 +212,7 @@ export function CompetitionForm({
                     onCheckedChange={setShowPlace}
                   />
                   <Label htmlFor="show-place" className="text-xs">
-                    Place
+                    Place / Field
                   </Label>
                 </div>
               </div>
@@ -222,6 +226,7 @@ export function CompetitionForm({
                   name={apparatus}
                   initVal={getScore(apparatus)}
                   initPlace={getPlace(apparatus)}
+                  initFieldSize={getFieldSize(apparatus)}
                   initSV={getSV(apparatus)}
                   showSV={showSV}
                   showPlace={showPlace}
@@ -249,6 +254,7 @@ function ScoreInput({
   name,
   initVal,
   initPlace,
+  initFieldSize,
   initSV,
   showSV,
   showPlace,
@@ -257,6 +263,7 @@ function ScoreInput({
   name: string;
   initVal: number | string;
   initPlace: number | string;
+  initFieldSize: number | string;
   initSV: number | string;
   showSV: boolean;
   showPlace: boolean;
@@ -321,6 +328,25 @@ function ScoreInput({
             className="no-spinners px-2 text-center bg-background"
             onWheel={(e) => e.currentTarget.blur()}
             defaultValue={initPlace}
+          />
+        </div>
+
+        <div className={cn('grid w-1/3 items-center gap-1.5', !showPlace && 'hidden')}>
+          <Label
+            htmlFor={`${name}_field_size`}
+            className="text-[10px] text-muted-foreground uppercase"
+          >
+            Field
+          </Label>
+          <Input
+            type="number"
+            name={`${name}_field_size`}
+            id={`${name}_field_size`}
+            min="1"
+            placeholder="Total"
+            className="no-spinners px-2 text-center bg-background"
+            onWheel={(e) => e.currentTarget.blur()}
+            defaultValue={initFieldSize}
           />
         </div>
       </div>
