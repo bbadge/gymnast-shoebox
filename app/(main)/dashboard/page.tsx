@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation';
 import { CloudDownload } from 'lucide-react';
 import { ensureActiveGymnast } from '@/app/actions/gymnast';
 import { BetaBanner } from '@/components/beta-banner';
+import { AllAroundProgress } from '@/components/all-around-progress';
 import { CompetitionActions } from '@/components/competition-actions';
 import { DashboardTools } from '@/components/dashboard-tools';
 import { ProgressChart } from '@/components/progress-chart';
@@ -17,6 +18,7 @@ import {
   formatCalendarDate,
   majorGymnasticsLevel,
   placementPercentile,
+  summarizeAllAroundProgress,
 } from '@/lib/gymnastics';
 import { createClient } from '@/lib/supabase/server';
 
@@ -169,6 +171,19 @@ export default async function Dashboard({
           }];
     }),
   }));
+  const allAroundProgress = summarizeAllAroundProgress(
+    chronological.flatMap((competition) => {
+      const hasCompleteAllAround = eventOrder.every((apparatus) =>
+        competition.scores?.some((score) => score.apparatus === apparatus && score.value != null)
+      );
+      return hasCompleteAllAround && competition.all_around_score != null
+        ? [{
+            score: Number(competition.all_around_score),
+            level: majorGymnasticsLevel(competition.level ?? null),
+          }]
+        : [];
+    })
+  );
 
   return (
     <div className="space-y-6 max-w-4xl mx-auto pb-10">
@@ -232,6 +247,8 @@ export default async function Dashboard({
               ))}
             </CardContent>
           </Card>
+
+          {allAroundProgress ? <AllAroundProgress {...allAroundProgress} /> : null}
 
           {trendSeries.some((series) => series.points.length > 1) && (
             <Card>

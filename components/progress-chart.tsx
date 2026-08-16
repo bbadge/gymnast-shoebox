@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { displayGymnasticsLevel } from '@/lib/gymnastics';
+import { displayGymnasticsLevel, linearTrend } from '@/lib/gymnastics';
 
 type ProgressPoint = {
   label: string;
@@ -25,8 +25,28 @@ export function ProgressChart({ label, points }: { label: string; points: Progre
   const topPadding = 42;
   const bottomPadding = 18;
   const values = chartPoints.map((point) => point.value);
-  const minimum = Math.min(...values);
-  const maximum = Math.max(...values);
+  const levelSections = chartPoints.reduce<
+    Array<{ level: string | null; startIndex: number; endIndex: number }>
+  >((sections, point, index) => {
+    const current = sections.at(-1);
+    if (!current || current.level !== point.level) {
+      sections.push({ level: point.level, startIndex: index, endIndex: index });
+    } else {
+      current.endIndex = index;
+    }
+    return sections;
+  }, []);
+  const trendSections = levelSections.flatMap((section) => {
+    const trend = linearTrend(
+      chartPoints.slice(section.startIndex, section.endIndex + 1).map((point) => point.value)
+    );
+    return trend ? [{ ...section, ...trend }] : [];
+  });
+  const trendValues = trendSections.flatMap((section) => [section.start, section.end]);
+  const scaledValues = [...values, ...trendValues];
+  const actualMaximum = Math.max(...values);
+  const minimum = Math.min(...scaledValues);
+  const maximum = Math.max(...scaledValues);
   const spread = Math.max(maximum - minimum, metric === 'field' ? 10 : 0.5);
   const scaleMinimum = minimum - (spread - (maximum - minimum)) / 2;
   const coordinates = chartPoints.map((point, index) => {
@@ -39,22 +59,15 @@ export function ProgressChart({ label, points }: { label: string; points: Progre
       ((point.value - scaleMinimum) / spread) * (height - topPadding - bottomPadding);
     return { ...point, x, y };
   });
-  const levelSections = coordinates.reduce<
-    Array<{ level: string | null; startIndex: number; endIndex: number }>
-  >((sections, point, index) => {
-    const current = sections.at(-1);
-    if (!current || current.level !== point.level) {
-      sections.push({ level: point.level, startIndex: index, endIndex: index });
-    } else {
-      current.endIndex = index;
-    }
-    return sections;
-  }, []);
+  const yForValue = (value: number) =>
+    height -
+    bottomPadding -
+    ((value - scaleMinimum) / spread) * (height - topPadding - bottomPadding);
   const improvement = chartPoints.at(-1)!.value - chartPoints[0].value;
   const formatValue = (value: number) => metric === 'field' ? `${Math.round(value)}` : value.toFixed(3);
   const summary = metric === 'field'
-    ? `Best percentile ${formatValue(maximum)} · ${improvement >= 0 ? '+' : ''}${formatValue(improvement)} points overall · ${fieldPoints.length} meets`
-    : `Best ${formatValue(maximum)} · ${improvement >= 0 ? '+' : ''}${formatValue(improvement)} overall`;
+    ? `Best percentile ${formatValue(actualMaximum)} · ${improvement >= 0 ? '+' : ''}${formatValue(improvement)} points overall · ${fieldPoints.length} meets`
+    : `Best ${formatValue(actualMaximum)} · ${improvement >= 0 ? '+' : ''}${formatValue(improvement)} overall`;
 
   return (
     <div className="rounded-lg border p-3">
@@ -139,6 +152,20 @@ export function ProgressChart({ label, points }: { label: string; points: Progre
           strokeWidth="3"
           className="text-primary"
         />
+        {trendSections.map((section) => (
+          <line
+            key={`trend-${section.level ?? 'unknown'}-${section.startIndex}`}
+            x1={coordinates[section.startIndex].x}
+            y1={yForValue(section.start)}
+            x2={coordinates[section.endIndex].x}
+            y2={yForValue(section.end)}
+            strokeWidth="2"
+            strokeDasharray="7 5"
+            className="stroke-foreground/70"
+          >
+            <title>{displayGymnasticsLevel(section.level)} trend line</title>
+          </line>
+        ))}
         {coordinates.map((point) => (
           <g key={`${point.label}-${point.x}`}>
             <circle cx={point.x} cy={point.y} r="4" fill="currentColor" className="text-secondary" />
@@ -148,6 +175,7 @@ export function ProgressChart({ label, points }: { label: string; points: Progre
           </g>
         ))}
       </svg>
+      <p className="mt-1 text-[11px] text-muted-foreground">Dashed lines show the trend within each major level.</p>
     </div>
   );
 }

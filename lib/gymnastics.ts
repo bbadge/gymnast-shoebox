@@ -104,3 +104,50 @@ export function displayPlacementPercentile(place?: number | null, fieldSize?: nu
           : 'th';
   return `${percentile}${suffix} field percentile`;
 }
+
+export function linearTrend(values: number[]) {
+  if (values.length < 2) return null;
+
+  const xMean = (values.length - 1) / 2;
+  const yMean = values.reduce((sum, value) => sum + value, 0) / values.length;
+  let numerator = 0;
+  let denominator = 0;
+
+  values.forEach((value, index) => {
+    const xDistance = index - xMean;
+    numerator += xDistance * (value - yMean);
+    denominator += xDistance ** 2;
+  });
+
+  const slope = denominator === 0 ? 0 : numerator / denominator;
+  const intercept = yMean - slope * xMean;
+  return {
+    start: intercept,
+    end: intercept + slope * (values.length - 1),
+    slope,
+  };
+}
+
+export function summarizeAllAroundProgress(
+  points: Array<{ score: number; level: string | null }>,
+  recentWindow = 3
+) {
+  const latest = points.at(-1);
+  if (!latest) return null;
+
+  const levelPoints = points.filter((point) => point.level === latest.level);
+  const recent = levelPoints.slice(-Math.max(1, recentWindow));
+  const recentAverage = recent.reduce((sum, point) => sum + point.score, 0) / recent.length;
+  const personalBest = Math.max(...levelPoints.map((point) => point.score));
+
+  return {
+    level: latest.level,
+    latestScore: latest.score,
+    recentAverage,
+    recentMeetCount: recent.length,
+    personalBest,
+    gapToBest: Math.max(0, personalBest - recentAverage),
+    percentOfBest: personalBest > 0 ? Math.min(100, (recentAverage / personalBest) * 100) : 0,
+    levelMeetCount: levelPoints.length,
+  };
+}
